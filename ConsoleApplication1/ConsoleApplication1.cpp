@@ -3,6 +3,12 @@
 #include <dwmapi.h>
 #include <gdiplus.h>
 #include <ShellScalingAPI.h>
+
+#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib, "Dwmapi.lib")
@@ -86,6 +92,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                      RECTWIDTH(rcClient), RECTHEIGHT(rcClient),
                      SWP_FRAMECHANGED);
 
+        BOOL isUseImmersiveDarkMode{ TRUE };
+        HRESULT result = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &isUseImmersiveDarkMode, sizeof(isUseImmersiveDarkMode));
+        if (FAILED(result))
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &isUseImmersiveDarkMode, sizeof(isUseImmersiveDarkMode));
+
         break;
     }
         case WM_PAINT:
@@ -121,7 +132,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 auto borderWidth = 2;// pncsp->rgrc[1].left - pncsp->rgrc[2].left;
 
                 pncsp->rgrc[0].left = pncsp->rgrc[0].left + 8;
-                pncsp->rgrc[0].top = pncsp->rgrc[0].top + 0;
+                pncsp->rgrc[0].top = pncsp->rgrc[0].top - 1;
                 pncsp->rgrc[0].right = pncsp->rgrc[0].right - 8;
                 pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 8;
 
