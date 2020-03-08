@@ -24,6 +24,9 @@ constexpr int BOTTOMEXTENDWIDTH = 8;
 constexpr int RIGHTEXTENDWIDTH = 8;
 constexpr int LEFTEXTENDWIDTH = 8;
 
+// TODO[F]: Adjust according to the known system-wide border width.
+const int SystemBorderWidth = 1;
+
 LRESULT HitTestNCA(HWND hWnd, WPARAM wParam, LPARAM lParam)
 {
     // Get the point coordinates for the hit test.
@@ -104,8 +107,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     PAINTSTRUCT ps;
 
             auto dc = BeginPaint(hwnd, &ps);
-            for (int i = 0; i < 1500; ++i) SetPixel(dc, i, 0, RGB(0, 0, 0));
-            for (int i = 0; i < 1500; ++i) SetPixel(dc, i, 1, RGB(0, 0, 0));
+
+            for (int y = 0; y < SystemBorderWidth; ++y)
+            {
+                // TODO[F]: Window width should be used instead of 1500.
+                for (int i = 0; i < 1500; ++i) SetPixel(dc, i, y, RGB(0, 0, 0));
+            }
+
             EndPaint(hwnd, &ps);
             return 0;
         }
@@ -129,10 +137,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 NCCALCSIZE_PARAMS* pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
 
-                auto borderWidth = 2;// pncsp->rgrc[1].left - pncsp->rgrc[2].left;
-
                 pncsp->rgrc[0].left = pncsp->rgrc[0].left + 8;
-                pncsp->rgrc[0].top = pncsp->rgrc[0].top - 1;
+                pncsp->rgrc[0].top = pncsp->rgrc[0].top + 0;
                 pncsp->rgrc[0].right = pncsp->rgrc[0].right - 8;
                 pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 8;
 
@@ -175,7 +181,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         return 0;
     }
 
-    MARGINS margins = { 0, 0, 2, 0 } ;
+    MARGINS margins = { 0, 0, SystemBorderWidth, 0 } ;
     DwmExtendFrameIntoClientArea(hwnd, &margins);
 
     ShowWindow(hwnd, nCmdShow);
