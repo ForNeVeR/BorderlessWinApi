@@ -3,6 +3,8 @@
 #include <dwmapi.h>
 #include <gdiplus.h>
 #include <ShellScalingAPI.h>
+#include <winuser.h>
+#include <uxtheme.h>
 
 #define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
@@ -11,6 +13,7 @@
 
 using namespace Gdiplus;
 #pragma comment (lib,"Gdiplus.lib")
+#pragma comment(lib, "UXTheme")
 #pragma comment (lib, "Dwmapi.lib")
 #pragma comment (lib, "Shcore.lib")
 
@@ -104,10 +107,36 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
         case WM_PAINT:
         {
-                    PAINTSTRUCT ps;
+            PAINTSTRUCT ps;
 
             auto dc = BeginPaint(hwnd, &ps);
 
+            MARGINS margins = {};
+            RECT frame = {};
+            AdjustWindowRectExForDpi(&frame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL, GetDpiForWindow(hwnd));
+            margins.cyTopHeight = -frame.top;
+            DwmExtendFrameIntoClientArea(hwnd, &margins);
+
+            if (ps.rcPaint.bottom > SystemBorderWidth)
+            {
+                RECT rcRest = ps.rcPaint;
+                rcRest.top = SystemBorderWidth;
+            
+                const auto backgroundBrush = static_cast<HBRUSH>(GetStockObject(DKGRAY_BRUSH));
+            
+                // To hide the original title bar, we have to paint on top of it with
+                // the alpha component set to 255. This is a hack to do it with GDI.
+                // See NonClientIslandWindow::_UpdateFrameMargins for more information.
+                HDC opaqueDc;
+                BP_PAINTPARAMS params = { sizeof(params), BPPF_NOCLIP | BPPF_ERASE };
+                HPAINTBUFFER buf = BeginBufferedPaint(dc, &rcRest, BPBF_TOPDOWNDIB, &params, &opaqueDc);
+            
+                if (!buf || !opaqueDc)
+                    return 0;
+                FillRect(opaqueDc, &rcRest, backgroundBrush);
+                BufferedPaintSetAlpha(buf, NULL, 255);
+                EndBufferedPaint(buf, TRUE);
+            }
             for (int y = 0; y < SystemBorderWidth; ++y)
             {
                 // TODO[F]: Window width should be used instead of 1500.
